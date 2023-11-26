@@ -86,8 +86,33 @@ const deletePoint = (id)=>{
     })
 }
 
+const updatePoint = (id, data)=>{
+    return new Promise(async(resolve, reject)=>{
+        try{
+            const checkPoint = await Point.findOne({
+                _id: id
+            })
+            if(checkPoint === null){
+                resolve({
+                    status: 'OK',
+                    message: 'The Point is not defined'
+                })
+            }
+           const updatePoint = await Point.findByIdAndUpdate(id, data, {new: true})
+            resolve({
+                status: 'OK',
+                message: 'Update Point success',
+                data: updatePoint
+            })
+        }catch(e){
+            reject(e)
+        }
+    })
+}
+
 module.exports = {
     createPoint,
     getAllPoint,
-    deletePoint
+    deletePoint,
+    updatePoint
 }

@@ -6,7 +6,7 @@ const createPoint= async(req,res)=>{
         const reg =  /\/d\/(.+?)\//;
         const isCheckPicture = reg.test(picturePoint)
 
-        if(!address || !area || !locate || !positionType || !formAdvertising || !picturePoint || !isZoning){
+        if(!address || !area || !locate || !positionType || !formAdvertising || !picturePoint || isZoning == null){
             return res.status(200).json({
                 status: 'ERR',
                 messgae: 'The input is required'
@@ -57,8 +57,29 @@ const deletePoint = async(req,res)=>{
     }
 }
 
+const updatePoint = async(req,res)=>{
+    try{
+        const pointId = req.params.id
+        const data = req.body
+        if(!pointId){
+            return res.status(200).json({
+                status: 'ERR', 
+                message: 'The pointId is required'
+            })
+        }
+
+        const response = await PointService.updatePoint(pointId, data)
+        return res.status(200).json(response)
+    }catch(e){
+        return res.status(404).json({
+            message: e
+        })
+    }
+}
+
 module.exports = {
     createPoint,
     getAllPoint,
-    deletePoint
+    deletePoint,
+    updatePoint
 }
