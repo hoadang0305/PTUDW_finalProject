@@ -4,7 +4,14 @@ const pointSchema = new mongoose.Schema(
         // địa chỉ cụ thể
         address: {type: String, require: true},
         // quận - phường
-        area: {type: String, require: true},
+        area: [
+            {
+                // ward: { type: mongoose.Schema.Types.ObjectId, ref: 'Ward', required: true },
+                // district: { type: mongoose.Schema.Types.ObjectId, ref: 'District', required: true }
+                ward: { type: String, required: true },
+                district: { type: String, required: true }
+            }
+        ],
         // kinh - vĩ độ
         locate: {type: Array, require: true},
         // Loại vị trí
@@ -17,9 +24,6 @@ const pointSchema = new mongoose.Schema(
 
         panels: [{type: mongoose.Schema.Types.ObjectId,  ref: 'Panel', require: false}],
 
-        //access_token: {type: String, require: true},
-        //refresh_token: {type: String, require: true},
-        //isService: {type: String, require: true},
     },
     {
         timestamps: true,

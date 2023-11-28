@@ -1,4 +1,6 @@
 const Point = require("../Models/Point")
+const Ward = require("../Models/Ward");
+const District = require("../Models/District");
 
 const extractFileIdFromUrl = (url) => {
     const fileIdRegex = /\/d\/(.+?)\//;
@@ -6,46 +8,66 @@ const extractFileIdFromUrl = (url) => {
     return match ? match[1] : null;
 };
 
-const createPoint = (newPoint)=>{
-    return new Promise(async(resolve, reject)=>{
-        const {address, area, locate, positionType, formAdvertising, picturePoint, isZoning} = newPoint
-        try{
+const createPoint = (newPoint) => {
+    return new Promise(async (resolve, reject) => {
+        const { address, area, locate, positionType, formAdvertising, picturePoint, isZoning } = newPoint;
+
+        try {
             const checkPoint = await Point.findOne({
                 address: address
-            })
+            });
 
-            if(checkPoint!==null){
+            if (checkPoint !== null) {
                 resolve({
                     status: 'OK',
                     message: 'The Point is already'
-                })
+                });
             }
 
-            const fileId = extractFileIdFromUrl(picturePoint);
+            if(checkPoint === null){
+                const fileId = extractFileIdFromUrl(picturePoint);
 
-            if(checkPoint===null){
-                const newPoint = await Point.create({
-                    address, 
-                    area, 
-                    locate, 
-                    positionType, 
-                    formAdvertising, 
+                const [wardId, disId] = area;
+                const ward = await Ward.findOne({ wardId });
+                const district = await District.findOne({ disId });
+
+                if (!ward || !district) {
+                    return res.status(400).json({
+                        status: 'ERR',
+                        message: 'Ward or district not found.',
+                    });
+                }
+
+                const newPointData = {
+                    address,
+                    area: [{ ward: ward.wardName, district: district.disName }],
+                    locate,
+                    positionType,
+                    formAdvertising,
                     picturePoint: fileId,
                     isZoning
-                })
-                if(newPoint){
+                };
+
+                const newPoint = await Point.create(newPointData);
+                
+                // // Populate the ward and district fields
+                // await Point.populate(newPoint, { path: 'area.ward' });
+                // await Point.populate(newPoint, { path: 'area.district' });
+
+                if (newPoint) {
                     resolve({
                         status: 'OK',
                         message: 'SUCCESS',
                         data: newPoint
-                    })
+                    });
                 }
             }
-        }catch(e){
-            reject(e)
+        } catch (e) {
+            reject(e);
         }
-    })
-}
+    });
+};
+
 
 const getAllPoint = ()=>{
     return new Promise(async(resolve, reject)=>{
