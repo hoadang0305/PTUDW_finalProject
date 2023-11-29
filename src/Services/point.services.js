@@ -36,9 +36,10 @@ const createPoint = (newPoint)=>{
                         message: 'District not found'
                     });
                 }
+                console.log(ward.wardName, district.disName);
                 const newPoint = await Point.create({
                     address, 
-                    area, 
+                    area: {ward: ward.wardName, district: district.disName}, 
                     locate,
                     positionType, 
                     formAdvertising, 
