@@ -18,14 +18,22 @@ const createPoint = (newPoint)=>{
             }
 
             if(checkPoint===null){
-                const {wardId, disId} = area;
-                const ward = await Ward.findOne({ wardId:wardId  });
-                const district = await District.findOne({ disId: disId });
-                console.log(district.disName);
-                if (!ward || !district) {
-                    return res.status(400).json({
+                const wardId= area.ward;
+                const disId= area.district;
+                console.log(wardId, disId);
+               const ward = await Ward.findOne({ wardId: wardId });
+                if (ward === null) {
+                    reject({ 
                         status: 'ERR',
-                        message: 'Ward or district not found.',
+                        message: 'Ward not found'
+                    });
+                }
+                const district = await District.findOne({ disId: disId });
+
+                if (district ===null) {
+                    reject({
+                        status: 'ERR',
+                        message: 'District not found'
                     });
                 }
                 const newPoint = await Point.create({

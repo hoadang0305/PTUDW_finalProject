@@ -17,6 +17,7 @@ const createPoint= async(req,res)=>{
             })
         }
         req.body.picturePoint = IDPicture[1]
+        console.log(req.body);
         const response = await PointService.createPoint(req.body)
         console.log(response);
         return res.status(200).json(response)
