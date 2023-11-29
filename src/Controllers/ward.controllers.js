@@ -4,7 +4,7 @@ const createWard= async(req,res)=>{
     try{
         const {wardId, wardName, districtRefId} = req.body
         if(!wardId || !wardName || !districtRefId){
-            return res.status(200).json({
+            return res.status(404).json({
                 status: 'ERR',
                 messgae: 'The input is required'
             })

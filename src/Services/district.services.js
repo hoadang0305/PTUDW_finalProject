@@ -9,8 +9,8 @@ const createDistrict = (newDistrict)=>{
             })
 
             if(checkDistrict!==null){
-                resolve({
-                    status: 'OK',
+                reject({
+                    status: 'ERR',
                     message: 'The District is already'
                 })
             }

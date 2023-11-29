@@ -12,8 +12,8 @@ const createWard = (newWard)=>{
                 disId: districtRefId
             })
             if(checkWard!==null){
-                resolve({
-                    status: 'OK',
+                reject({
+                    status: 'ERR',
                     message: 'The Ward is already'
                 })
             }
