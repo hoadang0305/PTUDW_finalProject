@@ -10,8 +10,7 @@ const pointSchema = new mongoose.Schema(
                 // district: { type: mongoose.Schema.Types.ObjectId, ref: 'District', required: true }
                 ward: { type: String, required: true },
                 district: { type: String, required: true }
-            }
-        ,
+            },
         // kinh - vĩ độ
         locate: {type: Array, require: true},
         // Loại vị trí
