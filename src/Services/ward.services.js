@@ -6,14 +6,14 @@ const createWard = (newWard)=>{
         const {wardId, wardName, districtRefId}  = newWard
         try{
             const checkWard = await Ward.findOne({
-                wardId
+                wardId: wardId, districtRefId: districtRefId
             })
             const checkDistrict = await District.findOne({
                 disId: districtRefId
             })
             if(checkWard!==null){
-                resolve({
-                    status: 'OK',
+                reject({
+                    status: 'ERR',
                     message: 'The Ward is already'
                 })
             }
@@ -40,7 +40,31 @@ const createWard = (newWard)=>{
         }
     })
 }
+const getWardName = (wardId, districtRefId) => {
+    return new Promise(async(resolve, reject) => {
+        try {
+            const checkWard = await Ward.findOne({
+                wardId: wardId, districtRefId: districtRefId
+            })
+            if(checkWard==null){
+                reject({
+                    status: 'ERR',
+                    message: 'The Ward not found'
+                })
+            }
+            else {
+                resolve({
+                    status: 'OK',
+                    message: 'SUCCESS',
+                    data: checkWard.wardName
+                })
+            }
 
+        } catch (error) {
+            reject(error);
+        }
+    })
+}
 module.exports = {
-    createWard,
+    createWard,getWardName
 }

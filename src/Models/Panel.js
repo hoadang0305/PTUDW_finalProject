@@ -3,8 +3,6 @@ const panelSchema = new mongoose.Schema(
     {
         idPoint: {type: mongoose.Schema.Types.ObjectId,  ref: 'Point', require: true},
 
-        longitude: {type: String, require: true},
-        latitude: {type: String, require: true},
         // loại bảng quảng cáo
         Paneltype: {type: String, require: true},
         amount: {type: Int, require: true},
