@@ -22,7 +22,7 @@ const pointSchema = new mongoose.Schema(
         // đã quy hoạch chưa
         isZoning: {type: Boolean,default:false, require: true},
 
-        panels: [{type: mongoose.Schema.Types.ObjectId,  ref: 'Panel', require: false}],
+        panels: {type: Array,  ref: 'Panel', require: false},
 
     },
     {

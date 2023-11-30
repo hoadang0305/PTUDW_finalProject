@@ -3,10 +3,11 @@ const Ward = require("../Models/Ward");
 const District = require("../Models/District");
 const Position = require("../Models/Position");
 const FormAdvertising = require("../Models/Form");
+const Panel = require("../Models/Panel");
 
 const createPoint = (newPoint)=>{
     return new Promise(async(resolve, reject)=>{
-        const {address, area, locate, positionType, formAdvertising, picturePoint, isZoning} = newPoint
+        const {address, area, locate, positionType, formAdvertising, picturePoint, isZoning, panels} = newPoint
         console.log(newPoint)
         try{
             const checkPoint = await Point.findOne({
@@ -68,14 +69,12 @@ const createPoint = (newPoint)=>{
                         positionType: position.posId,
                         formAdvertising: formAdver.formId,
                         picturePoint,
-                        isZoning
+                        isZoning,
+                        panels
                     };
     
                     const newPoint = await Point.create(newPointData);
-                    // // Populate the ward and district fields
-                    // await Point.populate(newPoint, { path: 'area.ward' });
-                    // await Point.populate(newPoint, { path: 'area.district' });
-    
+
                     if (newPoint) {
                         resolve({
                             status: 'OK',
@@ -170,6 +169,7 @@ const updatePoint = (id, data)=>{
         }
     })
 }
+
 module.exports = {
     createPoint,
     getAllPoint,
