@@ -1,6 +1,10 @@
 const Point = require("../Models/Point");
 const Ward = require("../Models/Ward");
 const District = require("../Models/District");
+const wardServices = require('../Services/ward.services')
+const districtServices = require('../Services/district.services')
+const positionServices = require('../Services/positionType.services')
+const adsFormServices = require('../Services/adsForm.services')
 
 const createPoint = (newPoint)=>{
     return new Promise(async(resolve, reject)=>{
@@ -18,10 +22,8 @@ const createPoint = (newPoint)=>{
             }
 
             if(checkPoint===null){
-                const wardId= area.ward;
-                const disId= area.district;
-                console.log(wardId, disId);
-               const ward = await Ward.findOne({ wardId: wardId });
+                const {wardId, disId} = area;
+               const ward = await Ward.findOne({ wardId: wardId,districtRefId: disId });
                 if (ward === null) {
                     reject({ 
                         status: 'ERR',
@@ -36,10 +38,10 @@ const createPoint = (newPoint)=>{
                         message: 'District not found'
                     });
                 }
-                console.log(ward.wardName, district.disName);
                 const newPoint = await Point.create({
                     address, 
-                    area: {ward: ward.wardName, district: district.disName}, 
+                    //area: {ward: ward.wardName, district: district.disName},
+                    area,
                     locate,
                     positionType, 
                     formAdvertising, 
@@ -63,11 +65,21 @@ const createPoint = (newPoint)=>{
 const getAllPoint = ()=>{
     return new Promise(async(resolve, reject)=>{
         try{
-            const allPoint = await Point.find()
+            const allPoint = await Point.find();
+            const updatePoints = await Promise.all(
+                allPoint.map(async (point) =>{
+                const newPoint = {...point.toObject()};
+                const wardName = (await wardServices.getWardName(newPoint.area.ward, newPoint.area.district)).data;
+                const districtName = (await districtServices.getDistrictName(newPoint.area.district)).data;
+                newPoint.area = {ward: wardName,district: districtName};
+                newPoint.positionType = (await positionServices.getPositionName(newPoint.positionType)).data;
+                newPoint.formAdvertising = (await adsFormServices.getAdsFormName(newPoint.formAdvertising)).data;
+                return newPoint;
+            }));
             resolve({
                 status: 'OK',
                 message: 'SUCCESS',
-                data: allPoint
+                data: updatePoints
 
             })
         }catch(e){

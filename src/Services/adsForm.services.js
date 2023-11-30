@@ -1,30 +1,30 @@
-const District = require("../Models/District")
+const AdsForm = require("../Models/AdsForm")
 
-const createDistrict = (newDistrict)=>{
+const createForm = (newForm)=>{
     return new Promise(async(resolve, reject)=>{
-        const {disId, disName}  = newDistrict
+        const {formId, formName}  = newForm
         try{
-            const checkDistrict = await District.findOne({
-                disId: disId
+            const checkForm = await AdsForm.findOne({
+                formId: formId
             })
 
-            if(checkDistrict!==null){
+            if(checkForm!==null){
                 reject({
                     status: 'ERR',
-                    message: 'The District is already'
+                    message: 'The AdsForm is already'
                 })
             }
 
-            if(checkDistrict===null){
-                const newDistrict = await District.create({
-                    disId, 
-                    disName
+            if(checkForm===null){
+                const newForm = await AdsForm.create({
+                    formId, 
+                    formName
                 })
-                if(newDistrict){
+                if(newForm){
                     resolve({
                         status: 'OK',
                         message: 'SUCCESS',
-                        data: newDistrict
+                        data: newForm
                     })
                 }
             }
@@ -34,23 +34,23 @@ const createDistrict = (newDistrict)=>{
     })
 }
 
-const getDistrictName = (disId) => {
+const getAdsFormName = (adsFormId) => {
     return new Promise(async(resolve, reject) => {
         try {
-            const checkDistric = await District.findOne({
-                disId: disId
+            const checkForm = await AdsForm.findOne({
+                formId: adsFormId
             })
-            if(checkDistric==null){
+            if(checkForm==null){
                 reject({
                     status: 'ERR',
-                    message: 'The disId not found'
+                    message: 'The adsFormId not found'
                 })
             }
             else {
                 resolve({
                     status: 'OK',
                     message: 'SUCCESS',
-                    data: checkDistric.disName
+                    data: checkForm.formName
                 })
             }
 
@@ -60,5 +60,5 @@ const getDistrictName = (disId) => {
     })
 }
 module.exports = {
-    createDistrict,getDistrictName
+    createForm,getAdsFormName
 }

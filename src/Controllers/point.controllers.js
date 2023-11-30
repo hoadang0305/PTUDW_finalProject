@@ -6,20 +6,18 @@ const createPoint= async(req,res)=>{
         const reg =  /\/d\/(.+?)\//;   
         const IDPicture = picturePoint.match(reg);
         if(!address || !area || !locate || !positionType || !formAdvertising || !IDPicture || isZoning == null){
-            return res.status(200).json({
+            return res.status(404).json({
                 status: 'ERR',
                 message: 'The input is required'
             })
         }else if(IDPicture == null) {
-            return res.status(200).json({
+            return res.status(404).json({
                 status: 'ERR',
                 message: 'The input picture Point is not link Google Drive'
             })
         }
         req.body.picturePoint = IDPicture[1]
-        console.log(req.body);
         const response = await PointService.createPoint(req.body)
-        console.log(response);
         return res.status(200).json(response)
     }catch(e){
         return res.status(404).json({
@@ -44,7 +42,7 @@ const deletePoint = async(req,res)=>{
         const pointId = req.params.id
         //const token = req.headers
         if(!pointId){
-            return res.status(200).json({
+            return res.status(404).json({
                 status: 'ERR', 
                 message: 'The pointId is required'
             })
@@ -64,7 +62,7 @@ const updatePoint = async(req,res)=>{
         const pointId = req.params.id
         const data = req.body
         if(!pointId){
-            return res.status(200).json({
+            return res.status(404).json({
                 status: 'ERR', 
                 message: 'The pointId is required'
             })
