@@ -35,6 +35,11 @@ body {
     position: relative;
 }
 
+.btn:focus {
+    outline: none;
+    box-shadow: none;
+}
+
 .bottom-bar div .switch {
     position: relative;
     display: inline-block;
