@@ -80,6 +80,12 @@ function toggleUnclusteredPointVisibility(clickedLayer, visibility) {
     }
 }
 
+async function loadPoints() {
+    return fetch("http://localhost:3500/api/point/getAllPoint")
+        .then((response) => response.json())
+        .then((data) => data.data);
+}
+
 function setupMap(center) {
     const bounds = [
         [106.38, 10.39], // Southwest coordinates
@@ -118,12 +124,11 @@ function setupMap(center) {
                     .then((response) => response.json())
                     .then((data) => {
                         if (data.features && data.features.length > 0) {
-                            var address = data.features[0].place_name;
+                            const address = data.features[0].place_name;
+                            const placeInfoPaneHeader = '<h5 class="alert-heading"><i class="bi bi-check2-circle"></i> Thông tin địa điểm</h5>';
+                            const reportButton = '<button type="button" class="btn btn-outline-danger"><i class="bi bi-exclamation-octagon-fill"></i> BÁO CÁO VI PHẠM</button>';
 
-                            new mapboxgl.Popup()
-                                .setLngLat(e.lngLat)
-                                .setHTML("<strong>" + features[0].properties.name + "</strong><br>" + address)
-                                .addTo(map);
+                            document.getElementById("place-info-pane").innerHTML = `${placeInfoPaneHeader}<br><strong>${features[0].properties.name}</strong><br>${address}<br><br>${reportButton}`;
 
                             map.easeTo({
                                 center: e.lngLat,
@@ -143,163 +148,217 @@ function setupMap(center) {
         //add bottomController
         bottomController();
 
-        map.addSource("billboards", {
-            type: "geojson",
-            data: "./db.geojson",
-            cluster: true,
-            clusterMaxZoom: 14, // Max zoom to cluster points on
-            clusterRadius: 50, // Radius of each cluster when clustering points (defaults to 50)
-        });
+        let jsonObj;
+        (async () => {
+            let data = await loadPoints();
 
-        map.addLayer({
-            id: "clusters",
-            type: "circle",
-            source: "billboards",
-            filter: ["has", "point_count"],
-            paint: {
-                "circle-color": ["step", ["get", "point_count"], "#51bbd6", 5, "#f1f075", 10, "#f28cb1"],
-                "circle-radius": ["step", ["get", "point_count"], 20, 5, 30, 10, 40],
-            },
-        });
+            jsonObj = {
+                features: [],
+            };
 
-        map.addLayer({
-            id: "cluster-count",
-            type: "symbol",
-            source: "billboards",
-            filter: ["has", "point_count"],
-            layout: {
-                "text-field": ["get", "point_count_abbreviated"],
-                "text-font": ["DIN Offc Pro Medium", "Arial Unicode MS Bold"],
-                "text-size": 12,
-            },
-        });
+            for (let i = 0; i < data.length; i++) {
+                let point = {
+                    type: "Feature",
+                    geometry: {
+                        type: "Point",
+                        coordinates: [data[i].locate[0], data[i].locate[1]],
+                    },
+                    properties: {
+                        billboardType: data[i].formAdvertising,
+                        positionType: data[i].positionType,
+                        address: data[i].address,
+                        area: {
+                            ward: data[i].area.ward,
+                            district: data[i].area.district,
+                        },
+                        isZoning: data[i].isZoning,
+                    },
+                };
 
-        // unclustered-point-label
-        map.addLayer({
-            id: "unclustered-point-label",
-            type: "symbol",
-            source: "billboards",
-            filter: ["all", ["!", ["has", "point_count"]], ["==", ["get", "reported"], 1]],
-            layout: {
-                "text-field": "QC",
-                "text-font": ["DIN Offc Pro Medium", "Arial Unicode MS Regular"],
-                "text-size": 10,
-            },
-            paint: {
-                "text-color": "#ffffff",
-            },
-        });
-
-        // unclustered-point-label-reported
-        map.addLayer({
-            id: "unclustered-point-label-reported",
-            type: "symbol",
-            source: "billboards",
-            filter: ["all", ["!", ["has", "point_count"]], ["==", ["get", "reported"], 0]],
-            layout: {
-                "text-field": "QC",
-                "text-font": ["DIN Offc Pro Medium", "Arial Unicode MS Regular"],
-                "text-size": 10,
-            },
-            paint: {
-                "text-color": "#ffffff",
-            },
-        });
-
-        map.addLayer(
-            {
-                id: "unclustered-point",
-                type: "circle",
-                source: "billboards",
-                filter: ["all", ["!", ["has", "point_count"]], ["==", ["get", "reported"], 1]],
-                paint: {
-                    "circle-color": ["match", ["get", "reported"], 1, "#0000ff", "#ffffff"],
-                    "circle-radius": 10,
-                    "circle-stroke-width": 1,
-                    "circle-stroke-color": "#ffffff",
-                },
-            },
-            "unclustered-point-label"
-        );
-
-        map.addLayer(
-            {
-                id: "unclustered-point-reported",
-                type: "circle",
-                source: "billboards",
-                filter: ["all", ["!", ["has", "point_count"]], ["==", ["get", "reported"], 0]],
-                paint: {
-                    "circle-color": ["match", ["get", "reported"], 0, "#ff0000", "#ffffff"],
-                    "circle-radius": 10,
-                    "circle-stroke-width": 1,
-                    "circle-stroke-color": "#ffffff",
-                },
-            },
-            "unclustered-point-label-reported"
-        );
-
-        map.addLayer(
-            {
-                id: "billboard",
-                type: "circle",
-                source: "billboards",
-                filter: ["all", ["!", ["has", "point_count"]], ["==", ["get", "reported"], 1]],
-            },
-            "unclustered-point"
-        );
-
-        map.addLayer(
-            {
-                id: "report-violation",
-                type: "circle",
-                source: "billboards",
-                filter: ["all", ["!", ["has", "point_count"]], ["==", ["get", "reported"], 0]],
-            },
-            "unclustered-point-reported"
-        );
-
-        // inspect a cluster on click
-        map.on("click", "clusters", (e) => {
-            const features = map.queryRenderedFeatures(e.point, {
-                layers: ["clusters"],
-            });
-            const clusterId = features[0].properties.cluster_id;
-            map.getSource("billboards").getClusterExpansionZoom(clusterId, (err, zoom) => {
-                if (err) return;
-
-                map.easeTo({
-                    center: features[0].geometry.coordinates,
-                    zoom: zoom,
-                });
-            });
-        });
-
-        const popup = new mapboxgl.Popup({
-            closeButton: false,
-            closeOnClick: false,
-        });
-
-        map.on("mouseenter", ["unclustered-point", "unclustered-point-reported"], (e) => {
-            const coordinates = e.features[0].geometry.coordinates.slice();
-            const isZoning = e.features[0].properties.isZoning === 1 ? "ĐÃ QUY HOẠCH" : "CHƯA QUY HOẠCH";
-            const description = `<strong>${e.features[0].properties.billboardType}</strong><br>
-                          ${e.features[0].properties.positionType}<br>
-                          ${e.features[0].properties.address}<br>
-                          <strong><em>${isZoning}</em></strong>`;
-
-            // Ensure that if the map is zoomed out such that
-            // multiple copies of the feature are visible, the
-            // popup appears over the copy being pointed to.
-            while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
-                coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
+                jsonObj.features.push(point);
             }
 
-            popup.setLngLat(coordinates).setHTML(description).addTo(map);
-        });
+            map.addSource("billboardPos", {
+                type: "geojson",
+                data: jsonObj,
+                cluster: true,
+                clusterMaxZoom: 14, // Max zoom to cluster points on
+                clusterRadius: 50, // Radius of each cluster when clustering points (defaults to 50)
+            });
 
-        map.on("mouseleave", ["unclustered-point", "unclustered-point-reported"], () => {
-            map.getCanvas().style.cursor = "";
-            popup.remove();
-        });
+            map.addLayer({
+                id: "clusters",
+                type: "circle",
+                source: "billboardPos",
+                filter: ["has", "point_count"],
+                paint: {
+                    "circle-color": ["step", ["get", "point_count"], "#51bbd6", 3, "#f1f075", 6, "#f28cb1"],
+                    "circle-radius": ["step", ["get", "point_count"], 20, 3, 30, 6, 40],
+                    "circle-stroke-width": 2,
+                    "circle-stroke-color": "#ffffff",
+                },
+            });
+
+            map.addLayer({
+                id: "cluster-count",
+                type: "symbol",
+                source: "billboardPos",
+                filter: ["has", "point_count"],
+                layout: {
+                    "text-field": ["get", "point_count_abbreviated"],
+                    "text-font": ["DIN Offc Pro Medium", "Arial Unicode MS Bold"],
+                    "text-size": 12,
+                },
+            });
+
+            // unclustered-point-label
+            map.addLayer({
+                id: "unclustered-point-label",
+                type: "symbol",
+                source: "billboardPos",
+                // filter: ["all", ["!", ["has", "point_count"]], ["==", ["get", "reported"], 1]],
+                filter: ["!", ["has", "point_count"]],
+                layout: {
+                    "text-field": "QC",
+                    "text-font": ["DIN Offc Pro Medium", "Arial Unicode MS Regular"],
+                    "text-size": 10,
+                },
+                paint: {
+                    "text-color": "#ffffff",
+                },
+            });
+
+            // unclustered-point-label-reported
+            // map.addLayer({
+            //     id: "unclustered-point-label-reported",
+            //     type: "symbol",
+            //     source: "billboardPos",
+            //     filter: ["all", ["!", ["has", "point_count"]], ["==", ["get", "reported"], 0]],
+            //     layout: {
+            //         "text-field": "QC",
+            //         "text-font": ["DIN Offc Pro Medium", "Arial Unicode MS Regular"],
+            //         "text-size": 10,
+            //     },
+            //     paint: {
+            //         "text-color": "#ffffff",
+            //     },
+            // });
+
+            map.addLayer(
+                {
+                    id: "unclustered-point",
+                    type: "circle",
+                    source: "billboardPos",
+                    //filter: ["all", ["!", ["has", "point_count"]], ["==", ["get", "reported"], 1]],
+                    filter: ["!", ["has", "point_count"]],
+                    paint: {
+                        // "circle-color": ["match", ["get", "reported"], 1, "#0000ff", "#ffffff"],
+                        "circle-color": "#0000ff",
+                        "circle-radius": 10,
+                        "circle-stroke-width": 1,
+                        "circle-stroke-color": "#ffffff",
+                    },
+                },
+
+                "unclustered-point-label"
+            );
+
+            // map.addLayer(
+            //     {
+            //         id: "unclustered-point-reported",
+            //         type: "circle",
+            //         source: "billboardPos",
+            //         filter: ["all", ["!", ["has", "point_count"]], ["==", ["get", "reported"], 0]],
+            //         paint: {
+            //             "circle-color": ["match", ["get", "reported"], 0, "#ff0000", "#ffffff"],
+            //             "circle-radius": 10,
+            //             "circle-stroke-width": 1,
+            //             "circle-stroke-color": "#ffffff",
+            //         },
+            //     },
+            //     "unclustered-point-label-reported"
+            // );
+
+            map.addLayer(
+                {
+                    id: "billboard",
+                    type: "circle",
+                    source: "billboardPos",
+                    filter: ["all", ["!", ["has", "point_count"]], ["==", ["get", "reported"], 1]],
+                },
+                "unclustered-point"
+            );
+
+            // map.addLayer(
+            //     {
+            //         id: "report-violation",
+            //         type: "circle",
+            //         source: "billboardPos",
+            //         filter: ["all", ["!", ["has", "point_count"]], ["==", ["get", "reported"], 0]],
+            //     },
+            //     "unclustered-point-reported"
+            // );
+
+            // inspect a cluster on click
+            map.on("click", "clusters", (e) => {
+                const features = map.queryRenderedFeatures(e.point, {
+                    layers: ["clusters"],
+                });
+                const clusterId = features[0].properties.cluster_id;
+                map.getSource("billboardPos").getClusterExpansionZoom(clusterId, (err, zoom) => {
+                    if (err) return;
+
+                    map.easeTo({
+                        center: features[0].geometry.coordinates,
+                        zoom: zoom,
+                    });
+                });
+            });
+
+            const popup = new mapboxgl.Popup({
+                closeButton: false,
+                closeOnClick: false,
+            });
+
+            // map.on("mouseenter", ["unclustered-point", "unclustered-point-reported"], (e) => {
+            map.on("mouseenter", "unclustered-point", (e) => {
+                const coordinates = e.features[0].geometry.coordinates.slice();
+                const isZoning = e.features[0].properties.isZoning === 1 ? "ĐÃ QUY HOẠCH" : "CHƯA QUY HOẠCH";
+                const description = `<strong>${e.features[0].properties.billboardType}</strong><br>
+                              ${e.features[0].properties.positionType}<br>
+                              ${e.features[0].properties.address}<br>
+                              ${JSON.parse(e.features[0].properties.area).ward}, ${JSON.parse(e.features[0].properties.area).district}<br>
+                              <strong><em>${isZoning}</em></strong>`;
+
+                // Ensure that if the map is zoomed out such that
+                // multiple copies of the feature are visible, the
+                // popup appears over the copy being pointed to.
+                while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
+                    coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
+                }
+
+                popup.setLngLat(coordinates).setHTML(description).addTo(map);
+            });
+
+            map.on("click", "unclustered-point", (e) => {
+                const coordinates = e.features[0].geometry.coordinates.slice();
+                const billboardInfoPaneHeader = '<h5 class="alert-heading"><i class="bi bi-info-circle"></i> Thông tin bảng quảng cáo</h5>';
+                const address = `${e.features[0].properties.address}<br>${JSON.parse(e.features[0].properties.area).ward}, ${JSON.parse(e.features[0].properties.area).district}`;
+                const details = `Kích thước:<br>Số lượng:<br>Hình thức: <strong>${e.features[0].properties.billboardType}</strong><br>Phân loại: <strong>${e.features[0].properties.positionType}</strong><br>`;
+                const reportButton = '<button type="button" class="btn btn-outline-danger"><i class="bi bi-exclamation-octagon-fill"></i> BÁO CÁO VI PHẠM</button>';
+
+                document.getElementById("billboard-info-pane").innerHTML = `${billboardInfoPaneHeader}${address}<br><br>${details}<br>${reportButton}`;
+
+                map.easeTo({
+                    center: coordinates,
+                });
+            });
+
+            // map.on("mouseleave", ["unclustered-point", "unclustered-point-reported"], () => {
+            map.on("mouseleave", "unclustered-point", () => {
+                map.getCanvas().style.cursor = "";
+                popup.remove();
+            });
+        })();
     });
 }
